@@ -68,36 +68,15 @@ struct dl_device {
 };
 
 /** 
- * Statically defined fields contain size payload SIZE, spreding factor SF, 
- * band width BAD_WIDTH, code rate CODE_RATE, time stamp record TIMESTAMP 
- * and payload from message PHY_PAYLOAD. This values are captured from 
- * LoRaWAN packet.
+ * Statically defined fields contain time stamp record TIMESTAMP, device address 
+ * DEV_ADDR, message counter FCNT and payload from message PHY_PAYLOAD. This values 
+ * are captured from LoRaWAN packet.
  */
 UR_FIELDS(
         uint64 TIMESTAMP,
-        uint32 SIZE,
-        uint32 BAD_WIDTH,
-        uint32 SF,
-        uint32 CODE_RATE,
-        string APP_EUI,
-        string APP_NONCE,
         string DEV_ADDR,
-        string DEV_EUI,
-        string DEV_NONCE,
         string FCNT,
-        string FCTRL,
-        string FHDR,
-        string F_OPTS,
-        string F_PORT,
-        string MAC_PAYLOAD,
-        string MHDR,
-        string MIC,
-        string NET_ID,
         string PHY_PAYLOAD,
-        uint64 AIR_TIME,
-        uint8 ENABLE,
-        string NWK_SKEY,
-        string APP_SKEY
         )
 
 trap_module_info_t *module_info = NULL;
@@ -154,7 +133,7 @@ int main(int argc, char **argv) {
 
     /*
      * Macro allocates and initializes module_info structure according to MODULE_BASIC_INFO and MODULE_PARAMS
-     * definitions on the lines 69 and 77 of this file. It also creates a string with short_opt letters for getopt
+     * definitions on the lines 88 and 110 of this file. It also creates a string with short_opt letters for getopt
      * function called "module_getopt_string" and long_options field for getopt_long function in variable "long_options"
      */
     INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
@@ -186,6 +165,7 @@ int main(int argc, char **argv) {
     /** Create Input UniRec templates */
     ur_template_t *in_tmplt = ur_create_input_template(0, "TIMESTAMP,PHY_PAYLOAD", NULL);
     if (in_tmplt == NULL) {
+        ur_free_template(in_tmplt);
         fprintf(stderr, "Error: Input template could not be created.\n");
         return -1;
     }
@@ -194,6 +174,7 @@ int main(int argc, char **argv) {
     ur_template_t *out_tmplt = ur_create_output_template(0, "DEV_ADDR,TIMESTAMP,FCNT", NULL);
     if (out_tmplt == NULL) {
         ur_free_template(in_tmplt);
+        ur_free_template(out_tmplt);
         fprintf(stderr, "Error: Output template could not be created.\n");
         return -1;
     }
@@ -203,6 +184,7 @@ int main(int argc, char **argv) {
     if (out_rec == NULL) {
         ur_free_template(in_tmplt);
         ur_free_template(out_tmplt);
+        ur_free_record(out_rec);
         fprintf(stderr, "Error: Memory allocation problem (output record).\n");
         return -1;
     }
@@ -227,37 +209,12 @@ int main(int argc, char **argv) {
         /** Initialization physical payload for parsing and reversing octet fields. */
         lr_initialization(ur_get_ptr(in_tmplt, in_rec, F_PHY_PAYLOAD));
 
-        ur_set_string(out_tmplt, out_rec, F_MHDR, MHDR);
-        ur_set_string(out_tmplt, out_rec, F_PHY_PAYLOAD, PHYPayload);
-
-        if ((ur_get_len(in_tmplt, in_rec, F_NWK_SKEY) == 32) && (ur_get_len(in_tmplt, in_rec, F_APP_SKEY) == 32)) {
-            ur_set_string(out_tmplt, out_rec, F_PHY_PAYLOAD, lr_uint8_to_string(lr_decode(
-                    lr_arr_to_uint8(ur_get_var_as_str(in_tmplt, in_rec, F_NWK_SKEY)),
-                    lr_arr_to_uint8(ur_get_var_as_str(in_tmplt, in_rec, F_APP_SKEY)))));
-        }
-
         /** Identity message type */
-        if (lr_is_join_request_message()) {
-            ur_set_string(out_tmplt, out_rec, F_APP_EUI, AppEUI);
-            ur_set_string(out_tmplt, out_rec, F_DEV_EUI, DevEUI);
-            ur_set_string(out_tmplt, out_rec, F_DEV_NONCE, DevNonce);
-            ur_set_string(out_tmplt, out_rec, F_MIC, MIC);
-        } else if (lr_is_join_accept_message()) {
-            ur_set_string(out_tmplt, out_rec, F_APP_NONCE, AppNonce);
-            ur_set_string(out_tmplt, out_rec, F_NET_ID, NetID);
+        if (lr_is_join_accept_message()) {
             ur_set_string(out_tmplt, out_rec, F_DEV_ADDR, DevAddr);
-            ur_set_string(out_tmplt, out_rec, F_MIC, MIC);
         } else if (lr_is_data_message()) {
             ur_set_string(out_tmplt, out_rec, F_DEV_ADDR, DevAddr);
-            ur_set_string(out_tmplt, out_rec, F_FCTRL, FCtrl);
             ur_set_string(out_tmplt, out_rec, F_FCNT, FCnt);
-            ur_set_string(out_tmplt, out_rec, F_MIC, MIC);
-            ur_set_string(out_tmplt, out_rec, F_FHDR, FHDR);
-            ur_set_string(out_tmplt, out_rec, F_F_PORT, FPort);
-            ur_set_string(out_tmplt, out_rec, F_MAC_PAYLOAD, MACPayload);
-
-            if (FOptsLen != 0)
-                ur_set_string(out_tmplt, out_rec, F_F_OPTS, FOpts);
         }
 
         /** 
