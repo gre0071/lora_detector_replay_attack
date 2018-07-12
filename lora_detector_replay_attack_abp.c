@@ -77,6 +77,35 @@ UR_FIELDS(
         string DEV_ADDR,
         string FCNT,
         string PHY_PAYLOAD,
+//        string GW_ID,
+//        string NODE_MAC,
+//        uint32 US_COUNT,
+//        uint32 FRQ,
+//        uint32 RF_CHAIN,
+//        uint32 RX_CHAIN,
+//        string STATUS,
+//        uint32 SIZE,
+//        string MOD,
+//        uint32 BAD_WIDTH,
+//        uint32 SF,
+//        uint32 CODE_RATE,
+//        double RSSI,
+//        double SNR,
+//        string APP_EUI,
+//        string APP_NONCE,
+//        string DEV_EUI,
+//        string DEV_NONCE,
+//        string FCTRL,
+//        string FHDR,
+//        string F_OPTS,
+//        string F_PORT,
+//        string FRM_PAYLOAD,
+//        string LORA_PACKET,
+//        string MAC_PAYLOAD,
+//        string MHDR,
+//        string MIC,
+//        string NET_ID,
+//        uint64 AIR_TIME
         )
 
 trap_module_info_t *module_info = NULL;
@@ -249,7 +278,6 @@ int main(int argc, char **argv) {
              */
             if ((pre->RESTART == 1) && (pre->LAST_FCNT == counter) && (counter != 0)) {
                 ur_set(out_tmplt, out_rec, F_TIMESTAMP, ur_get(in_tmplt, in_rec, F_TIMESTAMP));
-                ur_copy_fields(out_tmplt, out_rec, out_tmplt, out_rec);
                 ret = trap_send(0, out_rec, MAX_MSG_SIZE);
                 TRAP_DEFAULT_SEND_ERROR_HANDLING(ret, continue, break);
 
